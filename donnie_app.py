@@ -4,18 +4,15 @@ Here's our first attempt at using data to create a table:
 """
 
 import streamlit as st
-import os
 import pandas as pd
 import numpy as np
 import time
-
-os.curdir="C:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1"
 
 #1
 st.title("Tous les contrib. avec indicateurs et leur score")
 
 # Importation du fichier Excel
-risque_contrib=pd.read_excel(os.curdir+"/"+"Liste_risques_contrib.xlsx")
+risque_contrib=pd.read_excel("Liste_risques_contrib.xlsx")
 
 # Tri du fichier par score
 risque_contrib_masq=risque_contrib[["Num_contrib.","Secteur_d'activité", 'Statut_contrib',
