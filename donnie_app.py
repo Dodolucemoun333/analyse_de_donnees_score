@@ -18,9 +18,8 @@ st.title("Tous les contrib. avec indicateurs et leur score")
 risque_contrib=pd.read_excel(os.curdir+"/"+"Liste_risques_contrib.xlsx")
 
 # Tri du fichier par score
-risque_contrib_masq=risque_contrib[['Num_contrib.', "Secteur_d'activité",'Clé_TVA', 'Statut_contrib',
-       "Etat_d'adhésion", 'Date_créa_contrib', 'Date_modif_contrib',
-       "Date_d'immatriculation", "Date_d'adhésion", 'Date_de_cessation',
+risque_contrib_masq=risque_contrib[["Num_contrib.","Secteur_d'activité", 'Statut_contrib',
+       "Etat_d'adhésion", "Date_d'immatriculation",
        'Ratio_ca_alarm', 'Décla_hors_délai', 'Plus_de_7_décla_tard_2024',
        'Part_det_fisc', 'Part_dégrèv', 'Plus_d_AMR', 'AMR_forcé',
        'Décla_tva_tardive', 'Pay_TVA_sans_décla', 'A_plus_de_7_crédit_TVA',
