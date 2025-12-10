@@ -12,16 +12,10 @@ import time
 st.title("Tous les contrib. avec indicateurs et leur score")
 
 # Importation du fichier Excel
-risque_contrib=pd.read_excel("Liste_risques_contrib.xlsx")
+risque_contrib=pd.read_excel("C:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/Liste_risques_contrib.xlsx")
 
 # Tri du fichier par score
-risque_contrib_masq=risque_contrib[["Num_contrib.","Secteur_d'activité", 'Statut_contrib',
-       "Etat_d'adhésion", "Date_d'immatriculation",
-       'Ratio_ca_alarm', 'Décla_hors_délai', 'Plus_de_7_décla_tard_2024',
-       'Part_det_fisc', 'Part_dégrèv', 'Plus_d_AMR', 'AMR_forcé',
-       'Décla_tva_tardive', 'Pay_TVA_sans_décla', 'A_plus_de_7_crédit_TVA',
-       'Score']]
-risque_contrib_tri=risque_contrib_masq.sort_values(by="Score", ascending=False)
+risque_contrib_tri=risque_contrib.sort_values(by="Score", ascending=False)
 st.dataframe(risque_contrib_tri)
 
 # 2
