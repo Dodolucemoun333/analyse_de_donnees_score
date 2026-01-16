@@ -1,7 +1,7 @@
 """
 Mon application pour présenter les résultats de mon analyse risque
 """
-
+import matplotlib.pyplot as plt
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -18,7 +18,7 @@ st.set_page_config(page_title="Analyse du risque fiscal", layout="wide")
 @st.cache_data
 def charger_donnees():
     return pd.read_excel(
-        "Liste_risques_contrib.xlsx"
+        "C:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/Liste_risques_contrib.xlsx"
     )
 
 ana_risq = charger_donnees()
@@ -124,15 +124,29 @@ if page == "Page 1 – Indicateurs":
 
     proportions=proportions1*100
 
-    st.dataframe(
-        proportions.rename("Proportion").to_frame(),
-        use_container_width=True
+    
+# Tracé du diagramme en barre horizontal
+    fig, ax = plt.subplots(figsize=(8, max(4, len(proportions) * 0.35)))
+
+    proportions.sort_values().plot(
+    kind="barh",
+    ax=ax
     )
 
+    ax.set_xlabel("Proportion (%)")
+    ax.set_ylabel("Indicateurs")
+    ax.set_title("Proportion d’activation des indicateurs (%)")
+
+    # Affichage des pourcentages sur les barres
+    for i, v in enumerate(proportions.sort_values()):
+        ax.text(v + 0.5, i, f"{v:.1f}%", va="center")
+
+    st.pyplot(fig)
+
     st.info(
-        "Une proportion élevée signifie que l’indicateur est fréquemment activé "
-        "dans la population analysée."
-    )
+            "Une proportion élevée signifie que l’indicateur est fréquemment activé "
+            "dans la population analysée."
+        )
 
 # =========================
 # PAGE 2 – SCORES
@@ -195,7 +209,6 @@ else:
         file_name=f"Contribuables_risque_{annee}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
 
 
 # streamlit run c:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/donnie_app.py [ARGUMENTS]
