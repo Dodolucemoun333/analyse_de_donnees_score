@@ -18,7 +18,7 @@ st.set_page_config(page_title="Analyse du risque fiscal", layout="wide")
 @st.cache_data
 def charger_donnees():
     return pd.read_excel(
-        "C:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/Liste_risques_contrib.xlsx"
+        "Liste_risques_contrib.xlsx"
     )
 
 ana_risq = charger_donnees()
@@ -209,6 +209,7 @@ else:
         file_name=f"Contribuables_risque_{annee}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 
 # streamlit run c:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/donnie_app.py [ARGUMENTS]
