@@ -1,44 +1,200 @@
 """
-# My first app
-Here's our first attempt at using data to create a table:
+Mon application pour présenter les résultats de mon analyse risque
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import time
+import openpyxl
+import io
 
-#1
-st.title("Tous les contrib. avec indicateurs et leur score")
 
-# Importation du fichier Excel
-risque_contrib=pd.read_excel("C:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/Liste_risques_contrib.xlsx")
+st.set_page_config(page_title="Analyse du risque fiscal", layout="wide")
 
-# Tri du fichier par score
-risque_contrib_tri=risque_contrib.sort_values(by="Score", ascending=False)
-st.dataframe(risque_contrib_tri)
+# =========================
+# CHARGEMENT DES DONNÉES
+# =========================
+@st.cache_data
+def charger_donnees():
+    return pd.read_excel(
+        "C:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/Liste_risques_contrib.xlsx"
+    )
 
-# 2
-st.title("Contrib. par niveau de risque")
+ana_risq = charger_donnees()
 
-# Définition des seuils
+# =========================
+# BARRE LATÉRALE – NAVIGATION
+# =========================
+st.sidebar.title("Navigation")
+page = st.sidebar.radio(
+    "Choisissez une page",
+    ("Page 1 – Indicateurs", "Page 2 – Scores", "Page 3 – Contribuables à risque")
+)
 
-seuil=st.selectbox("Choisissez le niveau de risque des contribuables", 
-                   ("Nul", "Faible", "Moyen", "Elevé"))
+st.sidebar.markdown("---")
 
-def filtre_contrib(base, selection) :
-  if selection=="Nul":
-    return base[base["Score"]==0]
-  elif selection=="Faible" :
-    return base[(base["Score"]>=1) & (base["Score"]<4)]
-  elif selection=="Moyen" :
-    return base[(base["Score"]>=4) & (base["Score"]<7)]
-  else :
-    return base[base["Score"]>=7]
+# =========================
+# BARRE LATÉRALE – FILTRES
+# =========================
+st.sidebar.title("Filtres principaux")
+st.sidebar.markdown("---")
 
-contrib_filtr=filtre_contrib(risque_contrib_tri, seuil)
+annee = st.sidebar.selectbox(
+    "Année d'analyse",
+    ("2023", "2024", "2025", "Global")
+)
 
-# Afficher
+# Colonnes dynamiques selon l’année
+if annee == "Global":
+    col_score = "Score global"
+    col_risque = "Niveau_de_risque_global"
+    prefix_ind = ""
+else:
+    col_score = f"Score {annee}"
+    col_risque = f"Niveau_de_risque_{annee}"
+    prefix_ind = f"_{annee[-2:]}"
 
-st.write(f"{contrib_filtr.shape[0]} Contribuables avec un risque {seuil}")
-st.dataframe(contrib_filtr)
+st.sidebar.markdown("---")
+
+# Filtre niveau de risque
+niveaux_disponibles = ana_risq[col_risque].dropna().unique()
+niveau_risque = st.sidebar.multiselect(
+    "Niveau de risque",
+    options=niveaux_disponibles,
+    default=niveaux_disponibles
+)
+
+st.sidebar.markdown("---")
+
+# Bornes de score conditionnelles au niveau de risque
+if niveau_risque:
+    score_min_auto = int(
+        ana_risq.loc[ana_risq[col_risque].isin(niveau_risque), col_score].min()
+    )
+    score_max_auto = int(
+        ana_risq.loc[ana_risq[col_risque].isin(niveau_risque), col_score].max()
+    )
+else:
+    score_min_auto = int(ana_risq[col_score].min())
+    score_max_auto = int(ana_risq[col_score].max())
+
+# Filtre score
+score_min, score_max = st.sidebar.slider(
+    "Score",
+    min_value=score_min_auto,
+    max_value=score_max_auto,
+    value=(score_min_auto, score_max_auto)
+)
+
+# Application des filtres
+base_filtree = ana_risq[
+    (ana_risq[col_risque].isin(niveau_risque)) &
+    (ana_risq[col_score] >= score_min) &
+    (ana_risq[col_score] <= score_max)
+].copy()
+
+base_filtree = base_filtree.sort_values(by=col_score, ascending=False)
+
+# =========================
+# PAGE 1 – INDICATEURS
+# =========================
+if page == "Page 1 – Indicateurs":
+
+    st.title(f"📊 Indicateurs de risque de la période {annee} pour le(s) risque(s) : {niveau_risque}")
+
+    # Sélection des indicateurs de l’année
+    if annee=="Global" :
+      cols_indicateurs = [col for col in ana_risq.columns if col.endswith(("_23", "_24", "_25"))]  
+    else : 
+      cols_indicateurs = [c for c in ana_risq.columns if c.endswith(prefix_ind)]
+
+    col1, col2 = st.columns(2)
+    col1.metric(f"Nombre d’indicateurs", len(cols_indicateurs))
+    col2.metric(f"Nombre de contribuables", base_filtree[base_filtree[col_risque].isin(niveau_risque)].shape[0])
+
+    st.markdown("### 📌 Proportion des indicateurs")
+
+    proportions1 = (
+        base_filtree[cols_indicateurs]  # Utilisez cols_indicateurs (liste)
+        .mean()                      # Moyenne par colonne = proportion 1's
+        .sort_values(ascending=False)
+        .round(3)
+    )
+
+    proportions=proportions1*100
+
+    st.dataframe(
+        proportions.rename("Proportion").to_frame(),
+        use_container_width=True
+    )
+
+    st.info(
+        "Une proportion élevée signifie que l’indicateur est fréquemment activé "
+        "dans la population analysée."
+    )
+
+# =========================
+# PAGE 2 – SCORES
+# =========================
+elif page == "Page 2 – Scores":
+
+    st.title(f"📈 Scores de la période {annee} pour le(s) risque(s) : {niveau_risque}")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Score moyen", round(base_filtree[col_score].mean(), 2))
+    col3.metric("Score maximal", base_filtree[col_score].max())
+
+    st.markdown("### 📊 Distribution des scores")
+    st.bar_chart(base_filtree[col_score].value_counts().sort_index())
+
+    st.info(
+        "Les boîtes à moustaches permettent d’évaluer la dispersion du risque "
+    )
+
+# =========================
+# PAGE 3 – CONTRIBUABLES À RISQUE
+# =========================
+else:
+
+    st.title(f"🧾 Contribuables à risque de la période {annee} pour le(s) risque(s) : {niveau_risque}")
+
+    col1, col2 = st.columns(2)
+    col1.metric(f"Nombre de contribuables : ", base_filtree[base_filtree[col_risque].isin(niveau_risque)].shape[0])
+    col2.metric("Score maximal", base_filtree[col_score].max())
+    
+    if annee=="Global" :
+      colonnes_affichage = (
+        ["Num_contrib.", "Type_de_contribuable", "Centre_fiscal", col_score, col_risque] +
+        [col for col in ana_risq.columns if col.endswith(("_23", "_24", "_25"))]
+       ) 
+    else :
+      colonnes_affichage = (
+        ["Num_contrib.", "Type_de_contribuable", "Centre_fiscal", col_score, col_risque] +
+        [c for c in ana_risq.columns if c.endswith(prefix_ind) and not c.startswith("Niveau_de_ris")]
+    )
+    colonnes_affichage = [c for c in colonnes_affichage if c in ana_risq.columns]
+
+    st.dataframe(
+        base_filtree[colonnes_affichage],
+        use_container_width=True
+    )
+
+    # Export
+    def convertir_excel(df):
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Contribuables")
+        return output.getvalue()
+
+    excel = convertir_excel(base_filtree[colonnes_affichage])
+
+    st.download_button(
+        "⬇️ Télécharger la liste des contribuables",
+        data=excel,
+        file_name=f"Contribuables_risque_{annee}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+# streamlit run c:/Users/donnie.mounguengui/Documents/2025_IEF_Spécialité/Stage_aux_Impots/Travaux_Python_Sujet1/donnie_app.py [ARGUMENTS]
